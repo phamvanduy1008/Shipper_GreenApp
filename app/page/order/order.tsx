@@ -2,15 +2,15 @@ import { ipAddess } from '@/app/constans/ip';
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Animated,
-    FlatList,
-    Image,
-    RefreshControl,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Animated,
+  FlatList,
+  Image,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 // Định nghĩa interface cho dữ liệu đơn hàng
@@ -43,7 +43,7 @@ interface Order {
 }
 
 interface OrderListProps {
-  type: 'new' | 'my' | 'done';
+  type: 'new' | 'my' | 'done' | 'cancel';
 }
 
 const OrderList: React.FC<OrderListProps> = ({ type }) => {
@@ -92,16 +92,23 @@ const OrderList: React.FC<OrderListProps> = ({ type }) => {
             createdAt: item.createdAt,
             updatedAt: item.updatedAt,
           }));
+        } else if (type === 'done') {
+          const deliveredOrders = data.delivered || [];
+          mappedOrders = deliveredOrders.map((item: any) => ({
+            ...item.sellers,
+            status: item.status,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt,
+          }));
+        } else if (type === 'cancel') {
+          const cancelledOrders = data.cancelled || [];
+          mappedOrders = cancelledOrders.map((item: any) => ({
+            ...item.sellers,
+            status: item.status,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt,
+          }));
         }
-        else if (type === 'done') {
-            const processingOrders = data.delivered || [];
-            mappedOrders = processingOrders.map((item: any) => ({
-              ...item.sellers,
-              status: item.status,
-              createdAt: item.createdAt,
-              updatedAt: item.updatedAt,
-            }));
-          }
         console.log(`Successfully fetched ${mappedOrders.length} orders`);
         setOrders(mappedOrders);
       } else {
@@ -163,8 +170,26 @@ const OrderList: React.FC<OrderListProps> = ({ type }) => {
       }).start();
     };
 
-    const statusColor = type === 'new' ? '#FFB74D' : item.status === 'processing' ? '#FFB74D' : item.status === 'delivered' ? '#4CAF50' : '#F44336';
-    const statusText = type === 'new' ? 'Chờ lấy hàng' : item.status === 'processing' ? 'Chờ giao hàng' : item.status === 'delivered' ? 'Đã giao' : 'Đã hủy';
+    const statusColor =
+      type === 'new' || item.status === 'pending'
+        ? '#FFB74D'
+        : item.status === 'processing'
+        ? '#FFB74D'
+        : item.status === 'delivered'
+        ? '#4CAF50'
+        : item.status === 'cancelled'
+        ? '#F44336'
+        : '#757575';
+    const statusText =
+      type === 'new' || item.status === 'pending'
+        ? 'Chờ lấy hàng'
+        : item.status === 'processing'
+        ? 'Chờ giao hàng'
+        : item.status === 'delivered'
+        ? 'Đã giao'
+        : item.status === 'cancelled'
+        ? 'Đã hủy'
+        : 'Không xác định';
 
     return (
       <TouchableOpacity
@@ -172,15 +197,17 @@ const OrderList: React.FC<OrderListProps> = ({ type }) => {
         onPressIn={handleCardPressIn}
         onPressOut={handleCardPressOut}
         onPress={() => {
-            if (type === 'new') {
-              router.push(`./neworder/${item._id}`);
-            } else if (type === 'done') {
-              router.push(`./doneorder/${item._id}`);
-            } else {
-              router.push(`./myorder/${item._id}`);
-            }
-          }}
-        >
+          if (type === 'new') {
+            router.push(`./neworder/${item._id}`);
+          } else if (type === 'done') {
+            router.push(`./doneorder/${item._id}`);
+          } else if (type === 'cancel') {
+            router.push(`./cancelledorder/${item._id}`);
+          } else {
+            router.push(`./myorder/${item._id}`);
+          }
+        }}
+      >
         <Animated.View style={[styles.card, animatedStyle]}>
           <View style={styles.cardHeader}>
             <View style={styles.orderInfo}>
@@ -229,13 +256,15 @@ const OrderList: React.FC<OrderListProps> = ({ type }) => {
     <View style={styles.container}>
       {/* Header cố định */}
       <View style={styles.header}>
-      <Text style={styles.headerTitle}>
-            {type === 'new'
-                ? 'Đơn hàng mới'
-                : type === 'done'
-                ? 'Đơn hàng giao thành công'
-                : 'Đơn hàng của bạn'}
-            </Text>
+        <Text style={styles.headerTitle}>
+          {type === 'new'
+            ? 'Đơn hàng mới'
+            : type === 'done'
+            ? 'Đơn hàng giao thành công'
+            : type === 'cancel'
+            ? 'Đơn hàng đã hủy'
+            : 'Đơn hàng của bạn'}
+        </Text>
         <TouchableOpacity
           style={styles.userButton}
           onPress={() => router.push('/page/account/profile')}
@@ -418,7 +447,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#4CAF50',
-    marginLeft:20
+    marginLeft: 20,
   },
 });
 

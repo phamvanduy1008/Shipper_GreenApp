@@ -1,10 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Redirect, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import { Redirect, useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useState } from 'react';
 import {
-  Dimensions,
   Image,
   Platform,
   RefreshControl,
@@ -13,7 +12,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import { ipAddess } from '../constans/ip';
 
@@ -39,9 +38,6 @@ interface OrderStats {
   completedOrders: number;
   cancelledOrders: number;
 }
-
-const { width } = Dimensions.get('window');
-const CARD_WIDTH = (width - 48 - 12) / 2;
 
 const Home: React.FC = () => {
   const router = useRouter();
@@ -93,6 +89,7 @@ const Home: React.FC = () => {
 
       const dataOrder = await resOrder.json();
       const dataDelivered = await resDelivered.json();
+      console.log("dataDelivered", dataDelivered.processing);
 
       setOrderStats({
         newOrders: dataOrder.length,
@@ -111,28 +108,19 @@ const Home: React.FC = () => {
     setRefreshing(false);
   }, [fetchShipperInfo, fetchStats]);
 
-  useEffect(() => {
-    fetchShipperInfo();
-  }, [fetchShipperInfo]);
-
-  useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
+  useFocusEffect(
+    useCallback(() => {
+      onRefresh();
+    }, [onRefresh])
+  );
 
   if (!isAuthenticated) {
     console.log('Redirecting to login');
     return <Redirect href="/auth/login" />;
   }
 
-  const logout = async () => {
-    try {
-      await AsyncStorage.removeItem('shipperInfo');
-      setIsAuthenticated(false);
-      setShipperInfo(null);
-      router.replace('/auth/login');
-    } catch (error) {
-      console.error('Error during logout:', error);
-    }
+  const toacc = async () => {
+    router.push("/page/account/profile")
   };
 
   const handleClick = (type: 'new' | 'my' | 'done' | 'cancelled' | 'notifications') => {
@@ -146,7 +134,7 @@ const Home: React.FC = () => {
     } else if (type === 'done') {
       router.push({ pathname: './order/doneorder', params: { shipperId } });
     } else if (type === 'cancelled') {
-      router.push({ pathname: './order/cancelledorder', params: { shipperId } });
+      router.push({ pathname: './order/cancelorder', params: { shipperId } });
     } else if (type === 'notifications') {
       router.push({ pathname: './notifications', params: { shipperId } });
     }
@@ -171,7 +159,7 @@ const Home: React.FC = () => {
               </Text>
             </View>
             <TouchableOpacity
-              onPress={logout}
+              onPress={toacc}
               style={styles.profileButton}
             >
               <View style={styles.userButton}>
@@ -300,10 +288,10 @@ const Home: React.FC = () => {
             <View style={styles.summaryItem}>
               <Text style={styles.summaryLabel}>Tỷ lệ hoàn thành</Text>
               <Text style={styles.summaryValue}>
-                {orderStats.completedOrders + orderStats.processingOrders === 0 
-                  ? '0%'
-                  : Math.round((orderStats.completedOrders / 
-                      (orderStats.completedOrders + orderStats.processingOrders)) * 100) + '%'}
+                { Math.round(
+                      (orderStats.completedOrders / 
+                        (orderStats.completedOrders + orderStats.cancelledOrders)) * 100
+                    ) + '%'}
               </Text>
             </View>
           </View>
@@ -442,19 +430,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1E3A8A',
     letterSpacing: 0.5,
-  },
-  notificationButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#EFF6FF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
   },
   statsContainer: {
     flexDirection: 'row',

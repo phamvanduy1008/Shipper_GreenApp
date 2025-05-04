@@ -1,4 +1,5 @@
 import { ipAddess } from '@/app/constans/ip';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -39,6 +40,22 @@ interface Order {
   user: string;
 }
 
+export interface ShipperInfo {
+  _id?: string;
+  email: string;
+  password: string;
+  full_name: string;
+  phone: string;
+  avatar?: string;
+  isActive: boolean;
+  assignedOrders: {
+    sellers: string;
+    status: string;
+  };
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
 interface OrderDetailProps {
   type: 'new' | 'my' | 'completed' | 'cancel';
 }
@@ -47,6 +64,7 @@ const OrderDetail: React.FC<OrderDetailProps> = ({ type }) => {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const [order, setOrder] = useState<Order | null>(null);
+  const [shipperID, setShipperID] = useState<ShipperInfo | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
   // Format ngày tháng
@@ -65,10 +83,23 @@ const OrderDetail: React.FC<OrderDetailProps> = ({ type }) => {
       .replace('₫', 'VNĐ');
   };
 
-  // Fetch chi tiết đơn hàng từ API
   useEffect(() => {
-    console.log('Fetching order with id:', id);
+    const fetchShipperInfo = async () => {
+      try {
+        const user = await AsyncStorage.getItem('shipperInfo');
+        console.log('shipperInfo:', user);
+        if (user) {
+          const parsedUser = JSON.parse(user);
+          setShipperID(parsedUser._id);
+        }
+      } catch (error) {
+        console.error('Error reading AsyncStorage:', error);
+      }
+    };
+    fetchShipperInfo();
+  }, []);
 
+  useEffect(() => {
     const fetchOrder = async () => {
       try {
         setLoading(true);
@@ -80,7 +111,6 @@ const OrderDetail: React.FC<OrderDetailProps> = ({ type }) => {
         const data: Order = await response.json();
         console.log('Order detail response:', data);
         if (response.ok) {
-          // Kiểm tra tính hợp lệ của products
           if (data.products && Array.isArray(data.products)) {
             const hasInvalidProducts = data.products.some(
               (product) => !product._id || typeof product._id !== 'string'
@@ -114,21 +144,18 @@ const OrderDetail: React.FC<OrderDetailProps> = ({ type }) => {
     }
   }, [id]);
 
-  const handleAcceptOrder = async () => {
+  const handleAcceptOrder = async (orderID: string) => {
     try {
       setLoading(true);
-      console.log('Accepting order with id:', id);
-
-      const response = await fetch(`${ipAddess}/api/shipper_accept/${id}`, {
+      const response = await fetch(`${ipAddess}/api/shipper_accept`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ userId: id, status: 'processing' }),
+        body: JSON.stringify({ id: shipperID, orderID }),
       });
 
       const data = await response.json();
-
       if (response.ok) {
         setOrder({ ...order!, status: 'processing' });
         Alert.alert('Thành công', 'Bạn đã nhận đơn hàng!');
@@ -144,13 +171,13 @@ const OrderDetail: React.FC<OrderDetailProps> = ({ type }) => {
     }
   };
 
-  const handleCompleteOrder = async () => {
+  const handleCompleteOrder = async (orderID: string) => {
     try {
       setLoading(true);
-      const response = await fetch(`${ipAddess}/api/shipper/${id}/complete`, {
+      const response = await fetch(`${ipAddess}/api/shipper_complete`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: id, status: 'delivered' }),
+        body: JSON.stringify({ id: shipperID, orderId: orderID }),
       });
 
       const data = await response.json();
@@ -168,24 +195,25 @@ const OrderDetail: React.FC<OrderDetailProps> = ({ type }) => {
     }
   };
 
-  const handleFailedDelivery = async () => {
+  const handleCancelOrder = async (orderID: string) => {
     try {
       setLoading(true);
-      const response = await fetch(`${ipAddess}/api/orders/${id}/cancel`, {
+      const response = await fetch(`${ipAddess}/api/shipper_cancel`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: id, status: 'cancelled' }),
+        body: JSON.stringify({ id: shipperID, orderId: orderID }),
       });
 
       const data = await response.json();
       if (response.ok) {
-        Alert.alert('Thành công', 'Đơn hàng đã được đánh dấu không thành công!');
+        setOrder({ ...order!, status: 'cancelled' });
+        Alert.alert('Thành công', 'Đơn hàng đã bị hủy!');
         router.push('/page/Home');
       } else {
-        Alert.alert('Lỗi', data.message || 'Không thể cập nhật trạng thái');
+        Alert.alert('Lỗi', data.message || 'Không thể hủy đơn hàng');
       }
     } catch (error) {
-      console.error('Error marking failed delivery:', error);
+      console.error('Error cancelling order:', error);
       Alert.alert('Lỗi', 'Không thể kết nối tới server');
     } finally {
       setLoading(false);
@@ -207,6 +235,18 @@ const OrderDetail: React.FC<OrderDetailProps> = ({ type }) => {
       </View>
     );
   }
+
+  // Determine status color based on order status and type
+  const statusColor =
+    order.status === 'cancelled' || type === 'cancel'
+      ? '#F44336' // Red for cancelled orders
+      : order.status === 'pending'
+      ? '#FFB74D' // Orange for pending
+      : order.status === 'processing'
+      ? '#4A90E2' // Blue for processing
+      : order.status === 'delivered'
+      ? '#4CAF50' // Green for delivered
+      : '#757575'; // Gray for unknown
 
   return (
     <View style={styles.container}>
@@ -231,7 +271,7 @@ const OrderDetail: React.FC<OrderDetailProps> = ({ type }) => {
           <Text style={styles.dateOrder}>Ngày đặt: {formatDate(order.dateOrder)}</Text>
         </View>
 
-        <View style={styles.statusContainer}>
+        <View style={[styles.statusContainer, { backgroundColor: statusColor }]}>
           <Text style={styles.statusText}>
             Trạng thái:{' '}
             {order.status === 'pending'
@@ -240,14 +280,16 @@ const OrderDetail: React.FC<OrderDetailProps> = ({ type }) => {
               ? 'Chờ giao hàng'
               : order.status === 'delivered'
               ? 'Đã giao'
-              : 'Đã hủy'}
+              : order.status === 'cancelled'
+              ? 'Đã hủy'
+              : 'Không xác định'}
           </Text>
         </View>
 
         <View style={styles.customerInfo}>
           <Text style={styles.customerName}>{order.full_name}</Text>
           <Text style={styles.customerAddress}>{order.address}</Text>
-          <Text  style={styles.customerPhone}>SĐT: {order.phone}</Text>
+          <Text style={styles.customerPhone}>SĐT: {order.phone}</Text>
         </View>
 
         <View style={styles.productInfo}>
@@ -255,7 +297,7 @@ const OrderDetail: React.FC<OrderDetailProps> = ({ type }) => {
           {order.products.length > 0 ? (
             order.products.map((product, index) => (
               <Text
-                key={product._id || `product-${index}`} // Sử dụng index làm fallback nếu _id không hợp lệ
+                key={product._id || `product-${index}`}
                 style={styles.productItem}
               >
                 {index + 1}. {product.product.name} x{product.quantity} -{' '}
@@ -280,19 +322,31 @@ const OrderDetail: React.FC<OrderDetailProps> = ({ type }) => {
         {/* Action Buttons */}
         {type === 'new' && order.status === 'pending' && (
           <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.acceptButton} onPress={handleAcceptOrder}>
+            <TouchableOpacity style={styles.acceptButton} onPress={() => handleAcceptOrder(order._id)}>
               <Text style={styles.buttonText}>Nhận đơn</Text>
             </TouchableOpacity>
           </View>
         )}
         {type === 'my' && order.status === 'processing' && (
           <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.completeButton} onPress={handleCompleteOrder}>
+            <TouchableOpacity style={styles.completeButton} onPress={() => handleCompleteOrder(order._id)}>
               <Text style={styles.buttonText}>Thành Công</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.failedButton} onPress={handleFailedDelivery}>
+            <TouchableOpacity style={styles.failedButton} onPress={() => handleCancelOrder(order._id)}>
               <Text style={styles.buttonText}>Không thành công</Text>
             </TouchableOpacity>
+          </View>
+        )}
+        {type === 'cancel' && (order.status === 'pending' || order.status === 'processing') && (
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity style={styles.failedButton} onPress={() => handleCancelOrder(order._id)}>
+              <Text style={styles.buttonText}>Hủy đơn</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+        {type === 'cancel' && order.status === 'cancelled' && (
+          <View style={styles.cancelledMessageContainer}>
+            <Text style={styles.cancelledMessage}>Đơn hàng này đã được hủy</Text>
           </View>
         )}
       </View>
@@ -381,11 +435,14 @@ const styles = StyleSheet.create({
   },
   statusContainer: {
     marginBottom: 12,
+    padding: 8,
+    borderRadius: 8,
   },
   statusText: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#FFFFFF',
+    textAlign: 'center',
   },
   customerInfo: {
     marginBottom: 12,
@@ -478,6 +535,18 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#FFFFFF',
     fontSize: 16,
+    fontWeight: 'bold',
+  },
+  cancelledMessageContainer: {
+    marginTop: 16,
+    padding: 12,
+    backgroundColor: '#FFEBEE',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  cancelledMessage: {
+    fontSize: 16,
+    color: '#F44336',
     fontWeight: 'bold',
   },
 });
