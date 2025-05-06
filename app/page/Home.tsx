@@ -98,7 +98,6 @@ const Home: React.FC = () => {
         cancelledOrders: dataDelivered.cancelled?.length || 0,
       });
     } catch (error) {
-      console.error('Error fetching stats:', error);
     }
   }, [isAuthenticated, shipperInfo?._id]);
 

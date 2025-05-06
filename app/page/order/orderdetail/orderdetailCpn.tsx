@@ -240,8 +240,8 @@ const OrderDetail: React.FC<OrderDetailProps> = ({ type }) => {
   const statusColor =
     order.status === 'cancelled' || type === 'cancel'
       ? '#F44336' // Red for cancelled orders
-      : order.status === 'pending'
-      ? '#FFB74D' // Orange for pending
+      : order.status === 'resolved'
+      ? '#FFB74D' // Orange for resolved
       : order.status === 'processing'
       ? '#4A90E2' // Blue for processing
       : order.status === 'delivered'
@@ -274,7 +274,7 @@ const OrderDetail: React.FC<OrderDetailProps> = ({ type }) => {
         <View style={[styles.statusContainer, { backgroundColor: statusColor }]}>
           <Text style={styles.statusText}>
             Trạng thái:{' '}
-            {order.status === 'pending'
+            {order.status === 'resolved'
               ? 'Chờ lấy hàng'
               : order.status === 'processing'
               ? 'Chờ giao hàng'
@@ -320,7 +320,7 @@ const OrderDetail: React.FC<OrderDetailProps> = ({ type }) => {
         </View>
 
         {/* Action Buttons */}
-        {type === 'new' && order.status === 'pending' && (
+        {type === 'new' && order.status === 'resolved' && (
           <View style={styles.buttonContainer}>
             <TouchableOpacity style={styles.acceptButton} onPress={() => handleAcceptOrder(order._id)}>
               <Text style={styles.buttonText}>Nhận đơn</Text>
@@ -337,7 +337,7 @@ const OrderDetail: React.FC<OrderDetailProps> = ({ type }) => {
             </TouchableOpacity>
           </View>
         )}
-        {type === 'cancel' && (order.status === 'pending' || order.status === 'processing') && (
+        {type === 'cancel' && (order.status === 'resolved' || order.status === 'processing') && (
           <View style={styles.buttonContainer}>
             <TouchableOpacity style={styles.failedButton} onPress={() => handleCancelOrder(order._id)}>
               <Text style={styles.buttonText}>Hủy đơn</Text>

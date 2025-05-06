@@ -171,7 +171,7 @@ const OrderList: React.FC<OrderListProps> = ({ type }) => {
     };
 
     const statusColor =
-      type === 'new' || item.status === 'pending'
+      type === 'new' || item.status === 'resolved'
         ? '#FFB74D'
         : item.status === 'processing'
         ? '#FFB74D'
@@ -181,7 +181,7 @@ const OrderList: React.FC<OrderListProps> = ({ type }) => {
         ? '#F44336'
         : '#757575';
     const statusText =
-      type === 'new' || item.status === 'pending'
+      type === 'new' || item.status === 'resolved'
         ? 'Chờ lấy hàng'
         : item.status === 'processing'
         ? 'Chờ giao hàng'
