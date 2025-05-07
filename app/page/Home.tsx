@@ -14,7 +14,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import { ipAddess } from '../constans/ip';
+import { ipAddess } from '../constants/ip';
 
 export interface ShipperInfo {
   _id?: string;
@@ -279,8 +279,7 @@ const Home: React.FC = () => {
             <View style={styles.summaryItem}>
               <Text style={styles.summaryLabel}>Tổng đơn hàng</Text>
               <Text style={styles.summaryValue}>
-                {orderStats.newOrders + orderStats.processingOrders + 
-                orderStats.completedOrders + orderStats.cancelledOrders}
+                {orderStats.completedOrders + orderStats.cancelledOrders}
               </Text>
             </View>
             <View style={styles.summaryDivider} />

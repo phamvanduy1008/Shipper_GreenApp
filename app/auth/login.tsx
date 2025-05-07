@@ -2,16 +2,16 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
-import { ipAddess } from '../constans/ip';
+import { ipAddess } from '../constants/ip';
 
 const Login = () => {
   const [email, setEmail] = useState('');

@@ -1,4 +1,4 @@
-import { ipAddess } from '@/app/constans/ip';
+import { ipAddess } from '@/app/constants/ip';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -281,7 +281,7 @@ const OrderDetail: React.FC<OrderDetailProps> = ({ type }) => {
               : order.status === 'delivered'
               ? 'Đã giao'
               : order.status === 'cancelled'
-              ? 'Đã hủy'
+              ? 'Giao thất bại'
               : 'Không xác định'}
           </Text>
         </View>
@@ -310,12 +310,22 @@ const OrderDetail: React.FC<OrderDetailProps> = ({ type }) => {
         </View>
 
         <View style={styles.cardFooter}>
-          <View style={styles.paymentInfo}>
-            <Text style={styles.paymentMethod}>
-              {order.paymentMethod === 'cod' ? 'Thanh toán khi nhận hàng' : 'Đã thanh toán online'}
-            </Text>
-            <Text style={styles.deliveryFee}>Phí giao hàng: {formatCurrency(order.fee)}</Text>
-          </View>
+                     {order.paymentMethod === 'cod' ? 
+                     <>
+                     <View style={styles.paymentInfo}>
+                       <Text style={styles.paymentMethod}>
+                         Thanh toán khi nhận hàng
+                       </Text>
+                       <Text style={styles.deliveryFee}>Phí giao hàng: {formatCurrency(order.fee)}</Text>
+                     </View>
+                     </>
+                     :
+                     <>
+                       <Text style={styles.paymentMethod}>
+                       Đã thanh toán            
+                         </Text>
+                     </>
+                    }
           <Text style={styles.totalPrice}>{formatCurrency(order.total_price)}</Text>
         </View>
 

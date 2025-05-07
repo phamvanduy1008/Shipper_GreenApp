@@ -1,4 +1,4 @@
-import { ipAddess } from '@/app/constans/ip';
+import { ipAddess } from '@/app/constants/ip';
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
@@ -188,7 +188,7 @@ const OrderList: React.FC<OrderListProps> = ({ type }) => {
         : item.status === 'delivered'
         ? 'Đã giao'
         : item.status === 'cancelled'
-        ? 'Đã hủy'
+        ? 'Giao thất bại'
         : 'Không xác định';
 
     return (
@@ -226,12 +226,22 @@ const OrderList: React.FC<OrderListProps> = ({ type }) => {
           </View>
 
           <View style={styles.cardFooter}>
+            {item.paymentMethod === 'cod' ? 
+            <>
             <View style={styles.paymentInfo}>
               <Text style={styles.paymentMethod}>
-                {item.paymentMethod === 'cod' ? 'Thanh toán khi nhận hàng' : 'Đã thanh toán online'}
+                Thanh toán khi nhận hàng
               </Text>
               <Text style={styles.deliveryFee}>Phí giao hàng: {formatCurrency(item.fee)}</Text>
             </View>
+            </>
+            :
+            <>
+              <Text style={styles.paymentMethod}>
+              Đã thanh toán            
+                </Text>
+            </>
+           }
             <Text style={styles.totalPrice}>{formatCurrency(item.total_price)}</Text>
           </View>
         </Animated.View>
@@ -426,7 +436,7 @@ const styles = StyleSheet.create({
   },
   cardFooter: {
     flexDirection: 'row',
-    alignItems: 'center',
+    justifyContent:'space-between',
     borderTopWidth: 1,
     borderTopColor: '#EEEEEE',
     paddingTop: 12,
